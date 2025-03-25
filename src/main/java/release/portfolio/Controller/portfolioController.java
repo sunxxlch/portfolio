@@ -48,14 +48,6 @@ public class portfolioController {
     public List<Map<String, Object>> extractUiporfoliodetails(@PathVariable String projectname, @PathVariable String portfoliokey){
         List<portfolioDataSets> data =portservice.getdetailsofportfolio(projectname,portfoliokey);
 
-//        for(portfolioDataSets dt: data) {
-//            boolean checkexcutionData = portservice.getexecutionData(dt.getId());
-//
-//            if(checkexcutionData==false){
-//                portservice.setexecutionsData(dt.getId());
-//            }
-//        }
-
         return data.stream()
                 .map(dataset -> Map.of(
                         "name", dataset.getSetName(),
