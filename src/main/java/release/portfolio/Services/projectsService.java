@@ -4,12 +4,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import release.portfolio.Dao.UserRepo;
+import release.portfolio.Dao.adminRepo;
 import release.portfolio.Dao.portfolioRepo;
 import release.portfolio.Dao.projectRepo;
+import release.portfolio.Model.AdminData;
+import release.portfolio.Model.DTO.adminUserCredential;
 import release.portfolio.Model.DTO.loginRequest;
 import release.portfolio.Model.User;
 import release.portfolio.Model.portfolioData;
 import release.portfolio.Model.projectData;
+import java.util.Base64;
 
 import java.util.List;
 
@@ -25,7 +29,8 @@ public class projectsService {
     @Autowired
     private UserRepo urepo;
 
-
+    @Autowired
+    private adminRepo adrepo;
 
     public List<projectData> fetchallprojects() {
         return prepo.findAll();
@@ -48,4 +53,15 @@ public class projectsService {
         User lr = urepo.findByUsername(username);
         return String.valueOf(lr.getUser_roles());
     }
+
+    public void addAdminData(adminUserCredential ad) {
+        AdminData adm = new AdminData();
+        adm.setProject_name(ad.getProject_name());
+        adm.setCredentials(Base64.getEncoder().encodeToString((ad.getUserId() + ":" + ad.getPassword()).getBytes()));
+        adrepo.save(adm);
+    }
+
+
+
+
 }

@@ -48,13 +48,13 @@ public class portfolioController {
     public List<Map<String, Object>> extractUiporfoliodetails(@PathVariable String projectname, @PathVariable String portfoliokey){
         List<portfolioDataSets> data =portservice.getdetailsofportfolio(projectname,portfoliokey);
 
-        for(portfolioDataSets dt: data) {
-            boolean checkexcutionData = portservice.getexecutionData(dt.getId());
-
-            if(checkexcutionData==false){
-                portservice.setexecutionsData(dt.getId());
-            }
-        }
+//        for(portfolioDataSets dt: data) {
+//            boolean checkexcutionData = portservice.getexecutionData(dt.getId());
+//
+//            if(checkexcutionData==false){
+//                portservice.setexecutionsData(dt.getId());
+//            }
+//        }
 
         return data.stream()
                 .map(dataset -> Map.of(
@@ -209,6 +209,28 @@ public class portfolioController {
     public void addnewset(@RequestBody portfolioRequest pdst){
         System.out.println(pdst);
         portservice.addNewSetofData(pdst);
+    }
+
+    @GetMapping("/RefreshData/{projectname}/{portfoliokey}")
+    public List<Map<String, Object>> refreshPortfolioData(@PathVariable String projectname, @PathVariable String portfoliokey){
+        List<portfolioDataSets> data =portservice.getdetailsofportfolio(projectname,portfoliokey);
+
+        for(portfolioDataSets dt: data) {
+
+                portservice.setexecutionsData(dt.getId());
+        }
+
+        List<portfolioDataSets> data2 =portservice.getdetailsofportfolio(projectname,portfoliokey);
+        System.out.println(data2);
+        return data2.stream()
+                .map(dataset -> Map.of(
+                        "name", dataset.getSetName(),
+                        "Pass", dataset.getExecutedData().get("Pass"),
+                        "Fail", dataset.getExecutedData().get("Fail"),
+                        "Unexecuted", dataset.getExecutedData().get("Unexecuted"),
+                        "WIP", dataset.getExecutedData().get("WIP")
+                ))
+                .collect(Collectors.toList());
     }
 
 }

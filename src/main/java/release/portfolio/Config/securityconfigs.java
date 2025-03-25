@@ -41,7 +41,7 @@ public class securityconfigs {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf->csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("login","create","refresh").permitAll()
+                        .requestMatchers("/login","/create","/refresh","/projectAdmin").permitAll()
                         .requestMatchers(HttpMethod.GET).hasAnyRole("READ_ONLY", "ADMIN")
                         .requestMatchers(HttpMethod.POST).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT).hasRole("ADMIN")

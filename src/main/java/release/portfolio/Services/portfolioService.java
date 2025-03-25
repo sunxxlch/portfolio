@@ -4,13 +4,23 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nimbusds.jose.shaded.gson.JsonArray;
 import jakarta.transaction.Transactional;
+import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import release.portfolio.Dao.adminRepo;
 import release.portfolio.Dao.portfolioDataSetRepo;
 import release.portfolio.Dao.portfolioRepo;
+import release.portfolio.Model.AdminData;
 import release.portfolio.Model.DTO.Reports;
+import release.portfolio.Model.DTO.adminUserCredential;
 import release.portfolio.Model.DTO.portfolioDataSetsRequest;
 import release.portfolio.Model.DTO.portfolioRequest;
 import release.portfolio.Model.portfolioData;
@@ -18,7 +28,9 @@ import release.portfolio.Model.portfolioDataSets;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Service
@@ -29,6 +41,9 @@ public class portfolioService {
 
     @Autowired
     private portfolioDataSetRepo pdatarepo;
+
+    @Autowired
+    private adminRepo adrepo;
 
     @Transactional
     public void addportfolio(portfolioRequest request) {
@@ -105,23 +120,97 @@ public class portfolioService {
         if (pdsts.isPresent()) {
             portfolioDataSets portdetails = pdsts.get();
 
-            try {
+            Optional<AdminData> opadm = adrepo.findById(portdetails.getProjectName());
+            AdminData ad = opadm.get();
+            String projectId = portdetails.getProjectId();
+            String cycleId = portdetails.getCycleId();
+            String versionId = portdetails.getVersionId();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode executionData = fetchDataFromApi(projectId, cycleId,versionId,portdetails.getSetName(),ad.getCredentials());
 
-                ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode executionData = objectMapper.readTree(
-                        new ClassPathResource("dummydata.json").getInputStream()
-                );
+            portdetails.setExecutedData(executionData);
+            pdatarepo.save(portdetails);
 
-                portdetails.setExecutedData(executionData);
-                pdatarepo.save(portdetails);
-
-                System.out.println("Execution data updated successfully!");
-            } catch (IOException e) {
-                throw new RuntimeException("Error reading dummydata.json: " + e.getMessage());
-            }
+            System.out.println("Execution data updated successfully!");
         } else {
             throw new RuntimeException("PortfolioDataSet not found with ID: " + id);
         }
+    }
+
+
+
+    public JsonNode fetchDataFromApi(String projectId, String cycleId, String versionId,String setname, String creds) {
+
+        String jiraUrl = "https://jira.cengage.com/rest/zapi/latest/";
+        String apiUrl = jiraUrl + "execution?projectId=" + projectId + "&versionId=" + versionId + "&cycleId=" + cycleId;
+        RestTemplate restTemplate = new RestTemplate();
+        System.out.println(apiUrl);
+        HttpHeaders headers = createHeaders(creds);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.GET, entity, String.class);
+        System.out.println(response.getStatusCode());
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = null;
+
+        int Pass = 0;
+        int Fail = 0;
+        int unExecuted = 0;
+        int WIP =0;
+
+
+        try {
+            rootNode = mapper.readTree(response.getBody());
+            JsonNode executions = rootNode.path("executions");
+
+
+
+
+            for (int i = 0; i < executions.size(); i++) {
+                String status  = executions.get(i).get("executionStatus").asText();
+
+
+                switch (status) {
+                    case "1":
+                        Pass++;
+                        break;
+                    case "2":
+                        Fail++;
+                        break;
+                    case "3":
+                        WIP++;
+                        break;
+                    case "-1":
+                        unExecuted++;
+                        break;
+                    default:
+                        // Handle any other status codes if needed
+                        break;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+
+
+
+            ObjectNode objectNode = mapper.createObjectNode();
+            objectNode.put("name", setname);
+            objectNode.put("Pass", Pass);
+            objectNode.put("Fail",Fail);
+            objectNode.put("Unexecuted", unExecuted);
+            objectNode.put("WIP", WIP);
+
+
+
+        return objectNode;
+    }
+    private HttpHeaders createHeaders(String creds) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.AUTHORIZATION, "Basic " + creds);
+        return headers;
     }
 
     @Transactional

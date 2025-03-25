@@ -12,8 +12,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.bind.annotation.*;
+import release.portfolio.Model.AdminData;
 import release.portfolio.Model.DTO.RefreshTokenRequest;
 import release.portfolio.Model.DTO.Role;
+import release.portfolio.Model.DTO.adminUserCredential;
 import release.portfolio.Model.User;
 import release.portfolio.Model.portfolioData;
 import release.portfolio.Model.projectData;
@@ -105,6 +107,11 @@ public class projectsController {
     @PostMapping("/create")
     public User createuser(@RequestBody User user){
         return  usd.savedata(user);
+    }
+
+    @PostMapping("/projectAdmin")
+    public void addAdmin(@RequestBody adminUserCredential adcred){
+        pservice.addAdminData(adcred);
     }
 
 }
