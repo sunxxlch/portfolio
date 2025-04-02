@@ -19,4 +19,6 @@ public class AdminData {
     private String project_name;
     @Column(name = "credentials", nullable = false)
     private String credentials;
+    @Column(name = "mail_id", nullable = false)
+    private String mailid;
 }

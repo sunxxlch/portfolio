@@ -5,27 +5,23 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.util.Date;
+
 
 @Entity
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "portfolios", uniqueConstraints = @UniqueConstraint(columnNames = {"project_name", "portfolio_key"}))
-public class portfolioData {
-
+@Data
+@Table(name = "hotspot_portfolios",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"project_name", "portfolio_key"}))
+public class hotspot {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @Column(name = "project_name", nullable = false)
     private String projectName;
 
     @Column(name = "portfolio_key", nullable = false)
     private String portfolioKey;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
-
+    @Column(name = "date_of_release", nullable = false)
+    private Date dor;
 }
-

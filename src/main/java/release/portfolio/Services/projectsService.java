@@ -1,7 +1,6 @@
 package release.portfolio.Services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import release.portfolio.Dao.UserRepo;
 import release.portfolio.Dao.adminRepo;
@@ -9,7 +8,6 @@ import release.portfolio.Dao.portfolioRepo;
 import release.portfolio.Dao.projectRepo;
 import release.portfolio.Model.AdminData;
 import release.portfolio.Model.DTO.adminUserCredential;
-import release.portfolio.Model.DTO.loginRequest;
 import release.portfolio.Model.User;
 import release.portfolio.Model.portfolioData;
 import release.portfolio.Model.projectData;
@@ -58,6 +56,7 @@ public class projectsService {
         AdminData adm = new AdminData();
         adm.setProject_name(ad.getProject_name());
         adm.setCredentials(Base64.getEncoder().encodeToString((ad.getUserId() + ":" + ad.getPassword()).getBytes()));
+        adm.setMailid(ad.getMailId());
         adrepo.save(adm);
     }
 

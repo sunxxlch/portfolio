@@ -34,6 +34,12 @@ public class portfolioController {
     @PostMapping("/addPortfolio")
     public ResponseEntity<String> addportfolio(@RequestBody portfolioRequest request){
         portservice.addportfolio(request);
+        List<portfolioDataSets> data =portservice.getdetailsofportfolio(request.getProjectName(), request.getPortfolioKey());
+
+        for(portfolioDataSets dt: data) {
+
+            portservice.setexecutionsData(dt.getId());
+        }
         return ResponseEntity.ok("Portfolio and datasets added successfully!");
     }
 

@@ -4,33 +4,32 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nimbusds.jose.shaded.gson.JsonArray;
 import jakarta.transaction.Transactional;
-import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import release.portfolio.Dao.HotspotRepo;
 import release.portfolio.Dao.adminRepo;
 import release.portfolio.Dao.portfolioDataSetRepo;
 import release.portfolio.Dao.portfolioRepo;
 import release.portfolio.Model.AdminData;
 import release.portfolio.Model.DTO.Reports;
-import release.portfolio.Model.DTO.adminUserCredential;
 import release.portfolio.Model.DTO.portfolioDataSetsRequest;
 import release.portfolio.Model.DTO.portfolioRequest;
+import release.portfolio.Model.hotspot;
 import release.portfolio.Model.portfolioData;
 import release.portfolio.Model.portfolioDataSets;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.stream.IntStream;
 
 @Service
@@ -45,6 +44,90 @@ public class portfolioService {
     @Autowired
     private adminRepo adrepo;
 
+    @Autowired
+    private HotspotRepo hsrepo;
+
+    @Autowired
+    private emailService email;
+
+    @Transactional
+    @Scheduled(fixedRate = 3600000)
+    public void checkPortfolios() {
+
+        List<hotspot> lsthotspots = hsrepo.findAll();
+        if (lsthotspots.size() != 0) {
+
+            for (hotspot hp : lsthotspots) {
+                List<portfolioDataSets> data = getdetailsofportfolio(hp.getProjectName(), hp.getPortfolioKey());
+                int success = 0;
+
+                for (portfolioDataSets dt : data) {
+
+                    JsonNode js = (JsonNode) refreshAndCheckExecutionsData(dt.getId());
+                    int pass = js.get("Pass").asInt();
+                    int fail = js.get("Fail").asInt();
+                    int wip = js.get("WIP").asInt();
+                    int unexecuted = js.get("Unexecuted").asInt();
+
+                    if (pass > 0 && (fail == 0 && wip == 0 && unexecuted == 0)) {
+                        success++;
+
+                    }
+
+                }
+                if (success == data.size()) {
+                    email.sendEmail("Release Sign Off", hp.getProjectName(), hp.getPortfolioKey());
+                    deleteHotspot(hp.getProjectName(), hp.getPortfolioKey());
+
+                } else {
+                    LocalDate dor = hp.getDor().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    if (dor.plusDays(1).isEqual(LocalDate.now())) {
+                        email.sendEmail("Conditional Sign Off", hp.getProjectName(), hp.getPortfolioKey());
+                        deleteHotspot(hp.getProjectName(), hp.getPortfolioKey());
+                    }
+                }
+
+            }
+        }
+    }
+
+    public void deleteHotspot(String projectName, String portfolioKey){
+        Optional<hotspot> hotspotOptional = hsrepo.findByProjectNameAndPortfolioKey(projectName, portfolioKey);
+        if (hotspotOptional.isPresent()) {
+            hsrepo.delete(hotspotOptional.get());
+        }
+    }
+
+    @Transactional
+    public Object refreshAndCheckExecutionsData(Long id) {
+
+        Optional<portfolioDataSets> pdsts = pdatarepo.findById(id);
+
+        if (pdsts.isPresent()) {
+            portfolioDataSets portdetails = pdsts.get();
+
+            Optional<AdminData> opadm = adrepo.findById(portdetails.getProjectName());
+            AdminData ad = opadm.get();
+            String projectId = portdetails.getProjectId();
+            String cycleId = portdetails.getCycleId();
+            String versionId = portdetails.getVersionId();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode executionData = fetchDataFromApi(projectId, cycleId,versionId,portdetails.getSetName(),ad.getCredentials());
+
+            portdetails.setExecutedData(executionData);
+            pdatarepo.save(portdetails);
+
+            System.out.println("Execution data updated successfully!");
+            return executionData;
+        } else {
+
+            throw new RuntimeException("PortfolioDataSet not found with ID: " + id);
+
+        }
+
+    }
+
+
     @Transactional
     public void addportfolio(portfolioRequest request) {
         if(!portrepo.existsByPortfolioKeyAndProjectName(request.getPortfolioKey(),request.getProjectName())){
@@ -52,6 +135,23 @@ public class portfolioService {
             pdata.setProjectName(request.getProjectName());
             pdata.setPortfolioKey(request.getPortfolioKey());
             portrepo.save(pdata);
+        }
+        String pkey = request.getPortfolioKey();
+        if(pkey.length()>8){
+            pkey= pkey.substring(pkey.length()-8,pkey.length());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+            try {
+                Date dor = sdf.parse(pkey);
+                hotspot hsp = new hotspot();
+                hsp.setProjectName(request.getProjectName());
+                hsp.setPortfolioKey(request.getPortfolioKey());
+                hsp.setDor(dor);
+                hsrepo.save(hsp);
+
+            } catch (ParseException e) {
+                System.out.println(e);
+                e.printStackTrace();
+            }
         }
 
         List<portfolioDataSets> portdatasets= request.getDataSets().stream().map(datasets->{
@@ -66,8 +166,6 @@ public class portfolioService {
         }).toList();
 
         pdatarepo.saveAll(portdatasets);
-
-
 
     }
 

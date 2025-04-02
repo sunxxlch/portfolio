@@ -14,4 +14,5 @@ public class adminUserCredential {
     private String project_name;
     private String userId;
     private String password;
+    private String mailId;
 }
