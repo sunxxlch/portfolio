@@ -9,7 +9,7 @@ jobs:
 
     permissions:
       contents: read
-      packages: write
+      packages: write  # Ensure you have write access to GitHub Packages
 
     steps:
     - name: Checkout Code
@@ -27,6 +27,6 @@ jobs:
       run: mvn -B package -DskipTests --file pom.xml
 
     - name: Deploy to GitHub Packages
-      run: mvn deploy -s ${{ github.workspace }}/settings.xml
+      run: mvn deploy -DaltDeploymentRepository=github-packages::default::https://maven.pkg.github.com/sunxxlch/portfolio
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
