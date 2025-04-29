@@ -27,6 +27,6 @@ jobs:
       run: mvn -B package -DskipTests --file pom.xml
 
     - name: Deploy to GitHub Packages
-      run: mvn deploy -s ${{ github.workspace }}/settings.xml
+      run: mvn deploy -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/sunxxlch/portfolio
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
