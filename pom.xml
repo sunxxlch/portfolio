@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>release</groupId>
 	<artifactId>portfolio</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1-SNAPSHOT</version>ps -ef
 	<name>portfolio</name>
 	<description>Release Portfolio project for Spring Boot</description>
 	<url/>
