@@ -75,10 +75,10 @@ public class portfolioController {
                 .collect(Collectors.toList());
 
         Map<String, JsonNode> uniqueDefects = new LinkedHashMap<>();
-        for (JsonNode defect : flatList) {
+        flatList.forEach(defect ->{
             String key = defect.get("key").asText();
-            uniqueDefects.putIfAbsent(key, defect);
-        }
+            uniqueDefects.putIfAbsent(key,defect);
+        });
 
         return new ArrayList<>(uniqueDefects.values());
     }

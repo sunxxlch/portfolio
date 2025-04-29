@@ -223,7 +223,7 @@ public class portfolioService {
             String projectId = portdetails.getProjectId();
             String cycleId = portdetails.getCycleId();
             String versionId = portdetails.getVersionId();
-            ObjectMapper objectMapper = new ObjectMapper();
+
             JsonNode executionData = fetchDataFromApi(projectId, cycleId,versionId,portdetails.getSetName(),ad.getCredentials());
 
             portdetails.setExecutedData(executionData);
@@ -260,12 +260,8 @@ public class portfolioService {
             rootNode = mapper.readTree(response.getBody());
             JsonNode executions = rootNode.path("executions");
 
-
-
-
             for (int i = 0; i < executions.size(); i++) {
                 String status  = executions.get(i).get("executionStatus").asText();
-
 
                 switch (status) {
                     case "1":
@@ -291,17 +287,12 @@ public class portfolioService {
         }
 
 
-
-
-
             ObjectNode objectNode = mapper.createObjectNode();
             objectNode.put("name", setname);
             objectNode.put("Pass", Pass);
             objectNode.put("Fail",Fail);
             objectNode.put("Unexecuted", unExecuted);
             objectNode.put("WIP", WIP);
-
-
 
         return objectNode;
     }
