@@ -1,32 +1,27 @@
 name: Manual Maven Deploy
 
 on:
-  workflow_dispatch:  # Allows manual trigger via GitHub Actions UI
+  workflow_dispatch:
+
+#on:
+#  push:
+#    branches: [main]
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      packages: write  # Ensure you have write access to GitHub Packages
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-        server-id: github
-        settings-path: ${{ github.workspace }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: Build with Maven
-      run: mvn -B package -DskipTests --file pom.xml
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
 
-    - name: Deploy to GitHub Packages
-      run: mvn deploy -DaltDeploymentRepository=github-packages::default::https://maven.pkg.github.com/sunxxlch/portfolio
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
