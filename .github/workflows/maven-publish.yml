@@ -1,19 +1,18 @@
-name: Maven Publish on Release
+name: Manual Maven Deploy
 
 on:
-  release:
-    types: [created]  # Trigger when a release is created
+  workflow_dispatch:  # Allows manual trigger via GitHub Actions UI
 
 jobs:
-  build-and-publish:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
-      packages: write  # Needed to publish to GitHub Packages
+      packages: write
 
     steps:
-    - name: Checkout code
+    - name: Checkout Code
       uses: actions/checkout@v4
 
     - name: Set up JDK 17
@@ -21,13 +20,13 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
-        server-id: github  # must match distributionManagement/repository/id in pom.xml
-        settings-path: ${{ github.workspace }}  # saves settings.xml to root workspace
+        server-id: github
+        settings-path: ${{ github.workspace }}
 
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
-    - name: Publish to GitHub Packages
+    - name: Deploy to GitHub Packages
       run: mvn deploy -s ${{ github.workspace }}/settings.xml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
